@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F6F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F151C" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mistake Log">
+<title>Mistake Log</title>
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --bg:#F4F6F8;
+  --surface:#FFFFFF;
+  --ink:#131B23;
+  --ink-2:#5C6B7A;
+  --ink-3:#8494A3;
+  --line:#DCE2E8;
+  --line-strong:#C3CCD5;
+  --reading:#1F5FC4;
+  --reading-soft:#E7EFFB;
+  --technique:#A9660F;
+  --technique-soft:#FAEFDD;
+  --danger:#B3261E;
+  --radius:10px;
+  --page:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0F151C;
+    --surface:#18212B;
+    --ink:#E4EAF0;
+    --ink-2:#9AAABA;
+    --ink-3:#6E7F90;
+    --line:#26313D;
+    --line-strong:#36434F;
+    --reading:#4A8CF0;
+    --reading-soft:#152741;
+    --technique:#D79337;
+    --technique-soft:#33260F;
+    --danger:#E5675D;
+  }
+}
+
+*{box-sizing:border-box;}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;
+  line-height:1.45;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  -webkit-tap-highlight-color:transparent;
+}
+main{
+  max-width:520px;
+  margin:0 auto;
+  padding:14px var(--page) 48px;
+}
+
+/* ---------- topic field ---------- */
+.field{ position:relative; }
+
+#topic{
+  width:100%;
+  font:500 23px/1.25 inherit;
+  letter-spacing:-0.01em;
+  color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--line-strong);
+  border-radius:var(--radius);
+  padding:14px 14px;
+  outline:none;
+}
+#topic::placeholder{ color:var(--ink-3); font-weight:400; }
+#topic:focus{ border-color:var(--reading); box-shadow:0 0 0 3px var(--reading-soft); }
+
+#suggest{
+  position:absolute; z-index:20; left:0; right:0; top:calc(100% + 4px);
+  background:var(--surface);
+  border:1px solid var(--line-strong);
+  border-radius:var(--radius);
+  box-shadow:0 8px 24px rgba(10,20,30,.14);
+  overflow:hidden;
+}
+#suggest:empty{ display:none; }
+.sug{
+  display:flex; align-items:baseline; gap:8px;
+  padding:12px 14px; cursor:pointer;
+  border-bottom:1px solid var(--line);
+}
+.sug:last-child{ border-bottom:0; }
+.sug[aria-selected="true"], .sug:hover{ background:var(--reading-soft); }
+.sug b{ font-weight:500; }
+.sug span{ color:var(--ink-2); font-size:13px; font-variant-numeric:tabular-nums; margin-left:auto; }
+
+.hint{
+  margin:8px 2px 0; font-size:13px; color:var(--ink-2);
+}
+.hint button{
+  font:inherit; color:var(--reading); background:none; border:0; padding:0;
+  text-decoration:underline; cursor:pointer;
+}
+
+/* ---------- chips ---------- */
+.chips{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  margin-top:18px;
+}
+.chips.technique{ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+
+.chip{
+  display:flex; align-items:center; min-height:48px;
+  padding:8px 12px;
+  font:500 14.5px/1.25 inherit;
+  text-align:left;
+  color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--line-strong);
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:background .12s ease, color .12s ease, border-color .12s ease;
+}
+.chip:focus-visible{ outline:2px solid var(--reading); outline-offset:2px; }
+.chip[aria-pressed="true"]{ color:#fff; border-color:transparent; }
+.chip.r[aria-pressed="true"]{ background:var(--reading); }
+.chip.t[aria-pressed="true"]{ background:var(--technique); }
+@media (prefers-color-scheme: dark){
+  .chip[aria-pressed="true"]{ color:#0F151C; }
+}
+
+/* ---------- small inputs ---------- */
+.small{
+  width:100%;
+  font:400 16px/1.4 inherit;
+  color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:12px 14px;
+  outline:none;
+  margin-top:10px;
+}
+.small::placeholder{ color:var(--ink-3); }
+.small:focus{ border-color:var(--line-strong); }
+#cwWrap[hidden]{ display:none; }
+#count{ font-size:12px; color:var(--ink-3); text-align:right; margin-top:4px; }
+
+/* ---------- save ---------- */
+#save{
+  width:100%; margin-top:16px;
+  font:600 17px/1 inherit;
+  color:#fff; background:var(--ink);
+  border:0; border-radius:var(--radius);
+  padding:17px;
+  cursor:pointer;
+}
+@media (prefers-color-scheme: dark){ #save{ color:#0F151C; background:var(--ink); } }
+#save:disabled{ background:var(--line); color:var(--ink-3); cursor:default; }
+#save:focus-visible{ outline:2px solid var(--reading); outline-offset:2px; }
+
+/* ---------- recent ---------- */
+.recent{ margin-top:34px; border-top:1px solid var(--line); padding-top:14px; }
+.recent h2{
+  font:500 13px/1 inherit; color:var(--ink-2);
+  margin:0 0 12px; font-variant-numeric:tabular-nums;
+}
+.entry{ padding:10px 0; border-bottom:1px solid var(--line); }
+.entry:last-child{ border-bottom:0; }
+.entry .t{ font-weight:500; }
+.entry .n{ color:var(--ink-2); font-size:13.5px; }
+.tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
+.tag{
+  font-size:11.5px; padding:2px 7px; border-radius:99px;
+  background:var(--reading-soft); color:var(--reading);
+}
+.tag.t{ background:var(--technique-soft); color:var(--technique); }
+.empty{ color:var(--ink-2); font-size:14px; }
+
+/* ---------- toast + error ---------- */
+#toast{
+  position:fixed; left:50%; transform:translateX(-50%) translateY(10px);
+  bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  max-width:calc(100% - 32px);
+  background:var(--ink); color:var(--bg);
+  padding:12px 18px; border-radius:99px;
+  font-size:14px; font-weight:500;
+  opacity:0; pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+  z-index:50;
+}
+#toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+#fatal{
+  margin:0 0 16px; padding:14px;
+  border:1px solid var(--danger); border-radius:var(--radius);
+  color:var(--danger); font-size:14px;
+}
+#fatal[hidden]{ display:none; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p id="fatal" hidden></p>
+
+  <div class="field">
+    <input id="topic" type="text" placeholder="Topic" autocomplete="off"
+           autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="next">
+    <div id="suggest" role="listbox"></div>
+  </div>
+  <p class="hint" id="nearHint" hidden></p>
+
+  <div class="chips" id="chipsReading"></div>
+  <div class="chips technique" id="chipsTechnique"></div>
+
+  <input id="note" class="small" type="text" placeholder="what exactly" autocomplete="off" enterkeyhint="done">
+  <div id="count" hidden></div>
+
+  <div id="cwWrap" hidden>
+    <input id="cw" class="small" type="text" placeholder="Confused with" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+  </div>
+
+  <button id="save" disabled>Save</button>
+
+  <section class="recent">
+    <h2 id="recentHead">Nothing logged yet</h2>
+    <div id="recentList"><p class="empty">Type a topic above. Five mistakes from one block should take about a minute.</p></div>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* =========================================================================
+   Single source of truth for every tunable number. Nothing below hardcodes
+   a multiplier.
+   ========================================================================= */
+const SCORING = {
+  recency: [
+    { maxDays: 7,  mult: 4 },
+    { maxDays: 21, mult: 2 },
+    { maxDays: 45, mult: 1 },
+    { maxDays: Infinity, mult: 0.5 }
+  ],
+  revisedMult: 0.25,
+  recurrenceMult: 2.5,
+  splitWarnAt: 16,
+  quietAfterDays: 45,
+  trendWindowDays: 30,
+  trendMinHistoryDays: 60,
+  exportNagDays: 14,
+  exportNagEntries: 20
+};
+
+const READING_FIXABLE   = ['gap', 'confuse', 'fifty', 'luck'];
+const TECHNIQUE_FIXABLE = ['misread', 'rushed', 'blank'];
+
+const ERROR_TYPES = [
+  { code:'gap',     label:"Didn't know it" },
+  { code:'confuse', label:'Confused two similar' },
+  { code:'fifty',   label:'50:50, picked wrong' },
+  { code:'luck',    label:'Right, wrong reasoning' },
+  { code:'misread', label:'Misread the stem' },
+  { code:'rushed',  label:'Silly mistake' },
+  { code:'blank',   label:'Knew it, blanked' }
+];
+const LABEL = Object.fromEntries(ERROR_TYPES.map(e => [e.code, e.label]));
+const NOTE_SOFT_CAP = 140;
+
+/* ---------- state ---------- */
+let db = null;
+let entries = [];              // whole log, in memory
+let topics = new Map();        // topicKey -> { topic, count }
+const selected = new Set();
+let saving = false;
+let sugItems = [];
+let sugIndex = -1;
+
+/* ---------- elements ---------- */
+const $ = id => document.getElementById(id);
+const elTopic = $('topic'), elSuggest = $('suggest'), elNear = $('nearHint');
+const elNote  = $('note'),  elCount   = $('count');
+const elCw    = $('cw'),    elCwWrap  = $('cwWrap');
+const elSave  = $('save'),  elToast   = $('toast'), elFatal = $('fatal');
+
+/* =========================================================================
+   §7 Topic strings
+   ========================================================================= */
+function normalise(s){
+  return String(s)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\./g, '')
+    .trim();
+}
+
+function cleanDisplay(s){
+  return String(s).trim().replace(/\s+/g, ' ');
+}
+
+// Levenshtein with an early bail at > max. Only used for the near-match hint.
+function within(a, b, max){
+  if (Math.abs(a.length - b.length) > max) return false;
+  let prev = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++){
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + cost);
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > max) return false;
+    prev = cur;
+  }
+  return prev[b.length] <= max;
+}
+
+function rebuildTopics(){
+  topics = new Map();
+  for (const e of entries){
+    const t = topics.get(e.topicKey);
+    if (t) t.count++;
+    else topics.set(e.topicKey, { topic: e.topic, count: 1 });
+  }
+}
+
+function suggestionsFor(raw){
+  const q = normalise(raw);
+  if (!q) return [];
+  const all = [];
+  topics.forEach((v, key) => all.push({ key, topic: v.topic, count: v.count }));
+  const by = (a, b) => b.count - a.count || a.topic.localeCompare(b.topic);
+  const prefix = all.filter(t => t.key.startsWith(q)).sort(by);
+  const sub    = all.filter(t => !t.key.startsWith(q) && t.key.includes(q)).sort(by);
+  return prefix.concat(sub).slice(0, 8);
+}
+
+function nearMatchFor(raw, shown){
+  const q = normalise(raw);
+  if (!q || topics.has(q)) return null;
+  const skip = new Set(shown.map(s => s.key));
+  let best = null;
+  topics.forEach((v, key) => {
+    if (key.length < 6 || skip.has(key)) return;
+    if (within(q, key, 2) && !best) best = { key, topic: v.topic };
+  });
+  return best;
+}
+
+/* =========================================================================
+   §6 Storage
+   ========================================================================= */
+function openDB(){
+  return new Promise((res, rej) => {
+    if (!('indexedDB' in window)) return rej(new Error('no-idb'));
+    const req = indexedDB.open('mistakeLog', 1);
+    req.onupgradeneeded = ev => {
+      const d = ev.target.result;
+      if (!d.objectStoreNames.contains('entries')){
+        const s = d.createObjectStore('entries', { keyPath:'id' });
+        s.createIndex('topicKey', 'topicKey');
+        s.createIndex('created',  'created');
+      }
+      if (!d.objectStoreNames.contains('meta')){
+        d.createObjectStore('meta', { keyPath:'key' });
+      }
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+function readAll(){
+  return new Promise((res, rej) => {
+    const r = db.transaction('entries', 'readonly').objectStore('entries').getAll();
+    r.onsuccess = () => res(r.result || []);
+    r.onerror   = () => rej(r.error);
+  });
+}
+
+function addEntry(entry){
+  return new Promise((res, rej) => {
+    const tx = db.transaction('entries', 'readwrite');
+    tx.objectStore('entries').add(entry);
+    tx.oncomplete = () => res();
+    tx.onerror    = () => rej(tx.error);
+    tx.onabort    = () => rej(tx.error || new Error('aborted'));
+  });
+}
+
+function metaGet(key){
+  return new Promise(res => {
+    const r = db.transaction('meta', 'readonly').objectStore('meta').get(key);
+    r.onsuccess = () => res(r.result ? r.result.value : undefined);
+    r.onerror   = () => res(undefined);
+  });
+}
+
+function metaSet(key, value){
+  return new Promise(res => {
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({ key, value });
+    tx.oncomplete = res;
+    tx.onerror    = res;
+  });
+}
+
+function uuid(){
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+/* =========================================================================
+   Rendering
+   ========================================================================= */
+function renderChips(){
+  const mk = (t, cls) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip ' + cls;
+    b.dataset.code = t.code;
+    b.textContent = t.label;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => toggleChip(t.code, b));
+    return b;
+  };
+  const r = $('chipsReading'), q = $('chipsTechnique');
+  ERROR_TYPES.filter(t => READING_FIXABLE.includes(t.code)).forEach(t => r.appendChild(mk(t, 'r')));
+  ERROR_TYPES.filter(t => TECHNIQUE_FIXABLE.includes(t.code)).forEach(t => q.appendChild(mk(t, 't')));
+}
+
+function toggleChip(code, btn){
+  if (selected.has(code)) selected.delete(code); else selected.add(code);
+  btn.setAttribute('aria-pressed', selected.has(code) ? 'true' : 'false');
+  const on = selected.has('confuse');
+  elCwWrap.hidden = !on;
+  if (!on) elCw.value = '';              // §10: hidden and its value cleared
+  refreshSave();
+}
+
+function renderSuggest(){
+  elSuggest.innerHTML = '';
+  sugItems.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'sug';
+    d.setAttribute('role', 'option');
+    d.setAttribute('aria-selected', i === sugIndex ? 'true' : 'false');
+    const b = document.createElement('b'); b.textContent = s.topic;
+    const c = document.createElement('span'); c.textContent = '(' + s.count + ')';
+    d.append(b, c);
+    d.addEventListener('mousedown', ev => { ev.preventDefault(); pick(s); });
+    elSuggest.appendChild(d);
+  });
+}
+
+function pick(s){
+  elTopic.value = s.topic;
+  sugItems = []; sugIndex = -1;
+  renderSuggest();
+  elNear.hidden = true;
+  refreshSave();
+  const first = document.querySelector('.chip');
+  if (first) first.focus();              // §7: focus moves to the error chips
+}
+
+function onTopicInput(){
+  sugItems = suggestionsFor(elTopic.value);
+  sugIndex = -1;
+  renderSuggest();
+  const near = nearMatchFor(elTopic.value, sugItems);
+  if (near){
+    elNear.hidden = false;
+    elNear.innerHTML = '';
+    elNear.append('Close to "' + near.topic + '" — ');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = 'tap to use it';
+    b.addEventListener('mousedown', ev => {
+      ev.preventDefault();
+      pick({ topic: near.topic, key: near.key, count: 0 });
+    });
+    elNear.appendChild(b);
+  } else {
+    elNear.hidden = true;
+  }
+  refreshSave();
+}
+
+function refreshSave(){
+  elSave.disabled = saving || !elTopic.value.trim() || selected.size === 0;
+}
+
+function renderRecent(){
+  const head = $('recentHead'), list = $('recentList');
+  if (!entries.length){
+    head.textContent = 'Nothing logged yet';
+    list.innerHTML = '<p class="empty">Type a topic above. Five mistakes from one block should take about a minute.</p>';
+    return;
+  }
+  head.textContent = entries.length + ' logged · ' + topics.size +
+                     (topics.size === 1 ? ' topic' : ' topics');
+  const recent = entries.slice().sort((a, b) => b.created.localeCompare(a.created)).slice(0, 20);
+  list.innerHTML = '';
+  for (const e of recent){
+    const row = document.createElement('div'); row.className = 'entry';
+    const t = document.createElement('div'); t.className = 't'; t.textContent = e.topic;
+    row.appendChild(t);
+    if (e.note){
+      const n = document.createElement('div'); n.className = 'n'; n.textContent = e.note;
+      row.appendChild(n);
+    }
+    if (e.confusedWith){
+      const n = document.createElement('div'); n.className = 'n';
+      n.textContent = 'vs ' + e.confusedWith;
+      row.appendChild(n);
+    }
+    const tags = document.createElement('div'); tags.className = 'tags';
+    for (const c of e.errorTypes){
+      const s = document.createElement('span');
+      s.className = 'tag' + (TECHNIQUE_FIXABLE.includes(c) ? ' t' : '');
+      s.textContent = LABEL[c] || c;
+      tags.appendChild(s);
+    }
+    row.appendChild(tags);
+    list.appendChild(row);
+  }
+}
+
+let toastTimer = null;
+function toast(msg, ms){
+  elToast.textContent = msg;
+  elToast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => elToast.classList.remove('on'), ms || 1600);
+}
+
+function fatal(msg){
+  elFatal.hidden = false;
+  elFatal.textContent = msg;
+}
+
+/* =========================================================================
+   Save
+   ========================================================================= */
+async function save(){
+  if (saving) return;                    // double-tap guard
+  const typed = cleanDisplay(elTopic.value);
+  if (!typed || selected.size === 0) return;
+
+  const key = normalise(typed);
+  const known = topics.get(key);
+
+  const entry = {
+    id: uuid(),
+    created: new Date().toISOString(),
+    // §7: on a normalised match, store the existing canonical spelling
+    topic: known ? known.topic : typed,
+    topicKey: key,
+    errorTypes: ERROR_TYPES.filter(t => selected.has(t.code)).map(t => t.code),
+    note: elNote.value.trim(),
+    confusedWith: selected.has('confuse') ? elCw.value.trim() : '',
+    revised: false,
+    revisedOn: null
+  };
+
+  saving = true;
+  // Clear and refocus synchronously so the keyboard never drops between entries.
+  clearForm();
+  elTopic.focus();
+
+  try {
+    await addEntry(entry);
+    entries.push(entry);
+    rebuildTopics();
+    renderRecent();
+    toast('Saved');
+  } catch (err){
+    fatal('Not saved — "' + entry.topic + '" (' + entry.errorTypes.join(', ') +
+          '). Storage refused the write: ' + (err && err.name ? err.name : 'unknown') +
+          '. Log it again before closing the app.');
+  } finally {
+    saving = false;
+    refreshSave();
+  }
+}
+
+function clearForm(){
+  elTopic.value = '';
+  elNote.value = '';
+  elCw.value = '';
+  elCwWrap.hidden = true;
+  elCount.hidden = true;
+  selected.clear();
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+  sugItems = []; sugIndex = -1;
+  renderSuggest();
+  elNear.hidden = true;
+  refreshSave();
+}
+
+/* =========================================================================
+   Wiring
+   ========================================================================= */
+elTopic.addEventListener('input', onTopicInput);
+elTopic.addEventListener('blur', () => setTimeout(() => {
+  sugItems = []; sugIndex = -1; renderSuggest();
+}, 120));
+elTopic.addEventListener('keydown', ev => {
+  if (!sugItems.length){
+    if (ev.key === 'Enter'){
+      ev.preventDefault();
+      const first = document.querySelector('.chip');
+      if (first) first.focus();
+    }
+    return;
+  }
+  if (ev.key === 'ArrowDown'){ ev.preventDefault(); sugIndex = (sugIndex + 1) % sugItems.length; renderSuggest(); }
+  else if (ev.key === 'ArrowUp'){ ev.preventDefault(); sugIndex = (sugIndex - 1 + sugItems.length) % sugItems.length; renderSuggest(); }
+  else if (ev.key === 'Enter'){
+    ev.preventDefault();
+    if (sugIndex >= 0) pick(sugItems[sugIndex]);
+    else { sugItems = []; renderSuggest(); const f = document.querySelector('.chip'); if (f) f.focus(); }
+  }
+  else if (ev.key === 'Escape'){ sugItems = []; sugIndex = -1; renderSuggest(); }
+});
+
+elNote.addEventListener('input', () => {
+  const n = elNote.value.length;
+  if (n > NOTE_SOFT_CAP - 30){
+    elCount.hidden = false;
+    elCount.textContent = n + ' / ' + NOTE_SOFT_CAP;
+    elCount.style.color = n > NOTE_SOFT_CAP ? 'var(--danger)' : 'var(--ink-3)';
+  } else {
+    elCount.hidden = true;
+  }
+});
+
+elSave.addEventListener('click', save);
+document.addEventListener('keydown', ev => {
+  if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter' && !elSave.disabled) save();
+});
+
+/* =========================================================================
+   Boot
+   ========================================================================= */
+(async function boot(){
+  renderChips();
+  try {
+    db = await openDB();
+  } catch (err){
+    fatal('This browser will not open local storage, so nothing can be saved. ' +
+          'Private browsing is the usual cause. Open the app in a normal window.');
+    elSave.disabled = true;
+    return;
+  }
+
+  try {
+    entries = await readAll();
+  } catch (err){
+    entries = [];
+    fatal('Existing entries could not be read. Nothing has been deleted — close and reopen the app.');
+  }
+  rebuildTopics();
+  renderRecent();
+
+  // §6 Quota: ask once, best effort, gate nothing on the answer.
+  const asked = await metaGet('persistRequested');
+  if (!asked){
+    await metaSet('persistRequested', true);
+    await metaSet('schemaVersion', 2);
+    if (navigator.storage && navigator.storage.persist){
+      navigator.storage.persist().catch(() => {});
+    }
+  }
+
+  elTopic.focus();
+})();
+</script>
+</body>
+</html>
